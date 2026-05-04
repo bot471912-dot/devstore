@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppStore - Bibliothèque d'Applications</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📦 AppStore</h1>
+                <p class="subtitle">Votre bibliothèque d'applications personnelle</p>
+            </div>
+            <button class="btn-add-app" id="openFormBtn">➕ Ajouter une App</button>
+        </header>
+
+        <!-- Section de recherche -->
+        <section class="search-section">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="🔍 Rechercher une application..."
+                class="search-bar"
+            >
+        </section>
+
+        <!-- Affichage des applications -->
+        <section class="apps-section">
+            <div id="appsList" class="apps-grid">
+                <!-- Les cartes des applications s'affichent ici -->
+            </div>
+            <div id="emptyState" class="empty-state">
+                <p>Aucune application pour le moment. Ajoutez-en une pour commencer ! 🚀</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL pour ajouter une application -->
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Ajouter une nouvelle application</h2>
+                <button class="modal-close" id="closeFormBtn">&times;</button>
+            </div>
+
+            <form id="appForm">
+                <div class="form-group">
+                    <label for="appName">Nom de l'application :</label>
+                    <input 
+                        type="text" 
+                        id="appName" 
+                        required 
+                        placeholder="Ex: Google Drive"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="appDescription">Description :</label>
+                    <textarea 
+                        id="appDescription" 
+                        required 
+                        placeholder="Ex: Service de stockage cloud"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="appUrl">URL (Application) :</label>
+                    <input 
+                        type="url" 
+                        id="appUrl" 
+                        required 
+                        placeholder="https://example.com"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="appImageUrl">URL de l'image (Raw) :</label>
+                    <input 
+                        type="url" 
+                        id="appImageUrl" 
+                        required 
+                        placeholder="https://example.com/image.png (raw)"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="appDownloadUrl">URL de téléchargement (Raw) :</label>
+                    <input 
+                        type="url" 
+                        id="appDownloadUrl" 
+                        required 
+                        placeholder="https://example.com/download/app.zip (raw)"
+                    >
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Ajouter l'application</button>
+                    <button type="button" class="btn-secondary" id="cancelFormBtn">Annuler</button>
+                </div>
+            </form>
+            <div id="successMessage" class="success-message"></div>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

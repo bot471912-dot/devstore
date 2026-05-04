@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - AppStore</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🔐 Admin Panel</h1>
+                <p class="subtitle">Gestion des applications</p>
+            </div>
+            <a href="index.html" class="btn-back-header">← Retour à l'AppStore</a>
+        </header>
+
+        <div id="loginOverlay" class="login-overlay">
+            <div class="login-card">
+                <h2>Connexion Admin</h2>
+                <p class="help-text">Entrez le mot de passe stocké dans le fichier chiffré pour accéder au panneau.</p>
+                <input type="password" id="adminPasswordInput" class="login-input" placeholder="Mot de passe admin" />
+                <button class="btn-primary" id="loginBtn">Se connecter</button>
+                <div id="loginError" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Section Admin -->
+        <section id="adminContent" class="admin-section" style="display: none;">
+            <!-- Ajouter une app via JSON -->
+            <div class="admin-card">
+                <h2>➕ Ajouter une application</h2>
+                <p class="help-text">Collez le JSON d'une application pour l'ajouter directement</p>
+                
+                <textarea 
+                    id="jsonInput" 
+                    class="json-input"
+                    placeholder='{"name":"App Name","description":"...","url":"https://...","imageUrl":"https://...","downloadUrl":"https://..."}'
+                ></textarea>
+
+                <div class="admin-actions">
+                    <button class="btn-primary" id="addFromJsonBtn">Ajouter depuis JSON</button>
+                    <button class="btn-secondary" id="clearJsonBtn">Effacer</button>
+                </div>
+
+                <div id="adminSuccessMessage" class="success-message"></div>
+                <div id="adminErrorMessage" class="error-message"></div>
+            </div>
+
+            <!-- Liste des demandes en attente -->
+            <div class="admin-card">
+                <h2>📋 Demandes en attente d'approbation</h2>
+                <div id="pendingRequests" class="requests-list">
+                    <p class="help-text">Aucune demande en attente</p>
+                </div>
+            </div>
+
+            <!-- Liste des applications -->
+            <div class="admin-card">
+                <h2>📦 Applications validées</h2>
+                <div id="adminAppsList" class="apps-list">
+                    <!-- Liste dynamique -->
+                </div>
+            </div>
+
+            <!-- Configuration Webhook (Admin Only) -->
+            <div class="admin-card">
+                <h2>⚙️ Configuration Webhook</h2>
+                <label for="adminWebhookUrl">URL du Webhook pour l'admin :</label>
+                <input 
+                    type="url" 
+                    id="adminWebhookUrl" 
+                    class="webhook-input"
+                    placeholder="https://example.com/webhook"
+                >
+                <button class="btn-small" id="saveAdminWebhookBtn">Enregistrer</button>
+                <p class="help-text">Les webhooks seront envoyés à cette URL lors d'actions</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Sélecteurs pour admin
+        const jsonInput = document.getElementById('jsonInput');
+        const addFromJsonBtn = document.getElementById('addFromJsonBtn');
+        const clearJsonBtn = document.getElementById('clearJsonBtn');
+        const adminSuccessMessage = document.getElementById('adminSuccessMessage');
+        const adminErrorMessage = document.getElementById('adminErrorMessage');
+        const adminAppsList = document.getElementById('adminAppsList');
+        const adminWebhookUrl = document.getElementById('adminWebhookUrl');
+        const saveAdminWebhookBtn = document.getElementById('saveAdminWebhookBtn');        const loginOverlay = document.getElementById('loginOverlay');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const adminContent = document.getElementById('adminContent');
+        // Afficher message de succès admin
+        function showAdminSuccess(message) {
+            adminSuccessMessage.textContent = message;
+            adminSuccessMessage.classList.add('show');
+            adminErrorMessage.classList.remove('show');
+            setTimeout(() => {
+                adminSuccessMessage.classList.remove('show');
+            }, 4000);
+        }
+
+        // Afficher message d'erreur admin
+        function showAdminError(message) {
+            adminErrorMessage.textContent = message;
+            adminErrorMessage.classList.add('show');
+            adminSuccessMessage.classList.remove('show');
+            setTimeout(() => {
+                adminErrorMessage.classList.remove('show');
+            }, 4000);
+        }
+
+        // Échapper HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function hashPassword(password) {
+            const data = new TextEncoder().encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const bytes = new Uint8Array(hashBuffer);
+            let binary = '';
+            bytes.forEach((b) => binary += String.fromCharCode(b));
+            return btoa(binary);
+        }
+
+        async function loadAdminPasswordHash() {
+            try {
+                const response = await fetch('admin-password.txt');
+                if (!response.ok) {
+                    throw new Error(`Échec de lecture admin-password.txt: ${response.status}`);
+                }
+                return (await response.text()).trim();
+            } catch (error) {
+                console.warn('Impossible de charger admin-password.txt:', error);
+                return '6G94qKPK8LYNjnTllCqm2G3BUM08AzOK7yW30tfjrMc=';
+            }
+        }
+
+        async function verifyAdminPassword(password) {
+            const storedHash = await loadAdminPasswordHash();
+            const typedHash = await hashPassword(password);
+            return typedHash === storedHash;
+        }
+
+        function showLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.add('show');
+            setTimeout(() => {
+                loginError.classList.remove('show');
+            }, 4000);
+        }
+
+        async function loginAdmin() {
+            const password = adminPasswordInput.value.trim();
+            if (!password) {
+                showLoginError('Veuillez entrer un mot de passe.');
+                return;
+            }
+
+            const valid = await verifyAdminPassword(password);
+            if (valid) {
+                loginOverlay.style.display = 'none';
+                adminContent.style.display = 'flex';
+                adminPasswordInput.value = '';
+                renderAdminApps();
+                return;
+            }
+
+            showLoginError('Mot de passe incorrect.');
+        }
+
+        loginBtn.addEventListener('click', loginAdmin);
+        adminPasswordInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                loginAdmin();
+            }
+        });
+
+        // Ajouter une app depuis JSON
+        addFromJsonBtn.addEventListener('click', () => {
+            try {
+                const jsonText = jsonInput.value.trim();
+                if (!jsonText) {
+                    showAdminError('Veuillez entrer du JSON');
+                    return;
+                }
+
+                const appData = JSON.parse(jsonText);
+
+                // Valider les champs requis
+                if (!appData.name || !appData.description || !appData.url || !appData.imageUrl || !appData.downloadUrl) {
+                    showAdminError('Champs manquants: name, description, url, imageUrl, downloadUrl');
+                    return;
+                }
+
+                // Valider les URLs
+                try {
+                    new URL(appData.url);
+                    new URL(appData.imageUrl);
+                    new URL(appData.downloadUrl);
+                } catch (e) {
+                    showAdminError('Une ou plusieurs URLs sont invalides');
+                    return;
+                }
+
+                // Créer l'app
+                const newApp = {
+                    id: Date.now(),
+                    name: appData.name,
+                    description: appData.description,
+                    url: appData.url,
+                    imageUrl: appData.imageUrl,
+                    downloadUrl: appData.downloadUrl,
+                    dateAdded: new Date().toLocaleString('fr-FR')
+                };
+
+                // Ajouter au localStorage
+                const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+                apps.push(newApp);
+                localStorage.setItem('appstore_apps', JSON.stringify(apps));
+
+                // Envoyer webhook
+                const webhookUrl = localStorage.getItem('appstore_admin_webhook');
+                if (webhookUrl) {
+                    fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'app_approved',
+                            timestamp: new Date().toISOString(),
+                            app: newApp,
+                            admin: 'admin'
+                        })
+                    }).catch(err => console.error('Erreur webhook:', err));
+                }
+
+                jsonInput.value = '';
+                showAdminSuccess(`✅ "${newApp.name}" ajoutée avec succès !`);
+                renderAdminApps();
+
+            } catch (error) {
+                showAdminError(`Erreur JSON: ${error.message}`);
+            }
+        });
+
+        // Effacer le JSON
+        clearJsonBtn.addEventListener('click', () => {
+            jsonInput.value = '';
+        });
+
+        // Afficher les apps en admin
+        function renderAdminApps() {
+            const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+            adminAppsList.innerHTML = '';
+
+            if (apps.length === 0) {
+                adminAppsList.innerHTML = '<p class="help-text">Aucune application</p>';
+                return;
+            }
+
+            apps.forEach(app => {
+                const appItem = document.createElement('div');
+                appItem.className = 'admin-app-item';
+                appItem.innerHTML = `
+                    <div class="admin-app-info">
+                        <strong>${escapeHtml(app.name)}</strong>
+                        <p>${escapeHtml(app.description.substring(0, 50))}...</p>
+                        <small>Ajoutée le: ${escapeHtml(app.dateAdded)}</small>
+                    </div>
+                    <div class="admin-app-actions">
+                        <button class="btn-small" onclick="deleteAdminApp(${app.id})">🗑️ Supprimer</button>
+                    </div>
+                `;
+                adminAppsList.appendChild(appItem);
+            });
+        }
+
+        // Supprimer une app en admin
+        window.deleteAdminApp = function(appId) {
+            if (!confirm('Supprimer cette application ?')) return;
+
+            const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+            const appToDelete = apps.find(a => a.id === appId);
+            const updatedApps = apps.filter(a => a.id !== appId);
+
+            localStorage.setItem('appstore_apps', JSON.stringify(updatedApps));
+            showAdminSuccess('Application supprimée');
+            renderAdminApps();
+
+            // Envoyer webhook
+            const webhookUrl = localStorage.getItem('appstore_admin_webhook');
+            if (webhookUrl && appToDelete) {
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'app_deleted',
+                        timestamp: new Date().toISOString(),
+                        app: appToDelete,
+                        admin: 'admin'
+                    })
+                }).catch(err => console.error('Erreur webhook:', err));
+            }
+        };
+
+        // Gestion webhook admin
+        adminWebhookUrl.value = localStorage.getItem('appstore_admin_webhook') || '';
+
+        saveAdminWebhookBtn.addEventListener('click', () => {
+            const url = adminWebhookUrl.value.trim();
+            if (!url) {
+                showAdminError('Veuillez entrer une URL');
+                return;
+            }
+
+            try {
+                new URL(url);
+                localStorage.setItem('appstore_admin_webhook', url);
+                showAdminSuccess('Webhook enregistré');
+            } catch (e) {
+                showAdminError('URL invalide');
+            }
+        });
+
+        // Initialiser
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAdminApps();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "GitHub",
+    "description": "Plateforme de contrôle de version et de collaboration pour les développeurs. Gérez vos projets et contribuez à l'open source.",
+    "url": "https://github.com",
+    "imageUrl": "https://github.githubassets.com/favicons/favicon.png",
+    "downloadUrl": "https://example.com/download/github-cli.zip"
+  },
+  {
+    "name": "Visual Studio Code",
+    "description": "Éditeur de code léger et puissant avec support pour de nombreux langages et extensions.",
+    "url": "https://code.visualstudio.com",
+    "imageUrl": "https://code.visualstudio.com/favicon.ico",
+    "downloadUrl": "https://example.com/download/vscode.zip"
+  }
+]

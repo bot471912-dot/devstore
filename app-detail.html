@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails de l'Application</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Barre de navigation -->
+        <header class="detail-header">
+            <a href="index.html" class="btn-back">← Retour</a>
+            <h1>Détails de l'Application</h1>
+            <div style="width: 80px;"></div> <!-- Espaceur pour centrer le titre -->
+        </header>
+
+        <!-- Contenu de l'app -->
+        <section class="app-detail-section" id="appDetail">
+            <!-- Chargé dynamiquement par JavaScript -->
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Charger et afficher les détails de l'app
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const appId = parseInt(urlParams.get('id'));
+
+            if (!appId) {
+                document.getElementById('appDetail').innerHTML = '<p>Application non trouvée.</p>';
+                return;
+            }
+
+            const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+            const app = apps.find(a => a.id === appId);
+
+            if (!app) {
+                document.getElementById('appDetail').innerHTML = '<p>Application non trouvée.</p>';
+                return;
+            }
+
+            // Afficher les détails
+            const detailHTML = `
+                <div class="app-detail-card">
+                    <div class="app-detail-image">
+                        <img src="${escapeHtml(app.imageUrl)}" alt="${escapeHtml(app.name)}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23ddd%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2224%22%3EImage non disponible%3C/text%3E%3C/svg%3E'">
+                    </div>
+
+                    <div class="app-detail-content">
+                        <h2>${escapeHtml(app.name)}</h2>
+                        
+                        <div class="detail-section">
+                            <h3>📝 Description</h3>
+                            <p>${escapeHtml(app.description)}</p>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>🌐 Informations</h3>
+                            <p><strong>URL:</strong> <a href="${escapeHtml(app.url)}" target="_blank">${escapeHtml(app.url)}</a></p>
+                            <p><strong>Ajoutée le:</strong> ${escapeHtml(app.dateAdded)}</p>
+                        </div>
+
+                        <div class="detail-actions">
+                            <button class="btn-card btn-launch" onclick="window.open('${escapeHtml(app.url)}', '_blank')">🚀 Lancer l'App</button>
+                            <a href="${escapeHtml(app.downloadUrl)}" class="btn-card btn-download" download>📥 Télécharger</a>
+                            <button class="btn-card btn-report" onclick="reportAppFromDetail(${app.id}, '${escapeHtml(app.name).replace(/'/g, "\\'")}')">🚩 Signaler</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('appDetail').innerHTML = detailHTML;
+        });
+
+        // Fonction pour échapper les caractères HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Supprimer l'app et retourner à la page principale
+        function deleteAppFromDetail(appId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette application ?')) {
+                return;
+            }
+
+            const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+            const appToDelete = apps.find(app => app.id === appId);
+            const updatedApps = apps.filter(app => app.id !== appId);
+
+            localStorage.setItem('appstore_apps', JSON.stringify(updatedApps));
+
+            // Envoyer webhook
+            if (appToDelete) {
+                const webhookUrl = localStorage.getItem('appstore_webhook_url') || 'https://webhook.site/your-unique-id';
+                
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleted',
+                        timestamp: new Date().toISOString(),
+                        app: appToDelete
+                    })
+                }).catch(err => console.error('Erreur webhook:', err));
+            }
+
+            window.location.href = 'index.html';
+        }
+
+        // Signaler l'app
+        function reportAppFromDetail(appId, appName) {
+            if (!confirm('Signaler cette application ?')) {
+                return;
+            }
+
+            const apps = JSON.parse(localStorage.getItem('appstore_apps') || '[]');
+            const app = apps.find(a => a.id === appId);
+            const webhookUrl = localStorage.getItem('appstore_webhook_url') || 'https://webhook.site/your-unique-id';
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'reported',
+                    timestamp: new Date().toISOString(),
+                    app: app,
+                    reason: 'User reported'
+                })
+            }).then(() => {
+                alert('Application signalée. Merci !');
+            }).catch(err => {
+                console.error('Erreur webhook:', err);
+                alert('Erreur lors du signalement');
+            });
+        }
+    </script>
+</body>
+</html>
