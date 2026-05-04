@@ -63,8 +63,8 @@
                         </div>
 
                         <div class="detail-actions">
-                            <button class="btn-card btn-launch" onclick="window.open('${escapeHtml(app.url)}', '_blank')">🚀 Lancer l'App</button>
-                            <a href="${escapeHtml(app.downloadUrl)}" class="btn-card btn-download" download>📥 Télécharger</a>
+                            <button class="btn-card btn-launch" onclick="window.open('${escapeHtml(app.url)}', '_blank')">Lancer l'App</button>
+                            <a href="${escapeHtml(app.downloadUrl)}" class="btn-card btn-download" download>Télécharger</a>
                             <button class="btn-card btn-report" onclick="reportAppFromDetail(${app.id}, '${escapeHtml(app.name).replace(/'/g, "\\'")}')">🚩 Signaler</button>
                         </div>
                     </div>
