@@ -140,7 +140,7 @@ formModal?.addEventListener('click', (e) => {
 
 async function sendWebhook(action, payload) {
     // Utiliser l'URL du webhook configurée dans le code
-    const webhookUrl = WEBHOOK_URL;
+    const webhookUrl = discord.com/api/webhooks/1500863045843423475/Hfd1ktz-2sx6UnYk4IqF0UYMZMGXkSijwrxOm5xC7ny2tIX7XiTSKbFEoQuC1vOB8gri;
 
     if (!webhookUrl) {
         console.warn('URL du webhook non configurée.');
