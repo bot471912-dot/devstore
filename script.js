@@ -398,7 +398,7 @@ if (appForm) {
         if (result.success) {
             appForm.reset();
             closeForm();
-            showSuccess(`✅ Demande envoyée ! L'administrateur validera bientôt votre application.`);
+            showSuccess(`Demande envoyée ! L'administrateur validera bientôt votre application.`);
         } else {
             showError('Erreur lors de l\'envoi de la demande');
         }
@@ -430,8 +430,8 @@ if (searchInput) {
 // ========================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 AppStore démarrée');
+    console.log('AppStore démarrée');
     await loadInitialApps();
-    console.log('📊 Applications chargées:', loadApps().length);
+    console.log('Applications chargées:', loadApps().length);
 });
 
